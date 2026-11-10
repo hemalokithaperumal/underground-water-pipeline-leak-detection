@@ -1233,16 +1233,10 @@ try:
 
         st.subheader("Project Team")
 
-        team_df = pd.DataFrame({
-            "Role": [
-                "Project Student",
-                "Project Student"
-            ],
-            "Name": [
-                "Hema Lokitha P",
-                "Gayathiri Roshini M"
-            ]
-        })
+        st.markdown("""
+        HEMA LOKITHA P CSE(IOT)
+        GAYATRI ROSHINI CSE(IOT)
+        """)
 
         st.dataframe(
             team_df,
