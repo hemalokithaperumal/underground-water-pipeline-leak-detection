@@ -133,6 +133,96 @@ try:
 
     st.write("**Sensor channels:**", ", ".join(sensors))
     st.write("**Classes:**", ", ".join(classes))
+    
+    # -----------------------------------
+    # Automated Model Evaluation
+    # -----------------------------------
+
+    st.divider()
+    st.header("📊 Model Evaluation Dashboard")
+
+    @st.cache_data
+    def evaluate_model(demo):
+        actuals = []
+        predictions = []
+
+        for sample in demo["samples"]:
+            features = sample["x"]["clean"]
+
+            probabilities = predict(features, demo)
+            predicted_index = int(np.argmax(probabilities))
+
+            actuals.append(int(sample["label"]))
+            predictions.append(predicted_index)
+
+        actuals = np.array(actuals)
+        predictions = np.array(predictions)
+
+        cm = np.zeros((len(classes), len(classes)), dtype=int)
+
+        for actual, predicted in zip(actuals, predictions):
+            cm[actual, predicted] += 1
+
+        correct = int(np.sum(actuals == predictions))
+        total = len(actuals)
+        accuracy = correct / total * 100
+
+        return actuals, predictions, cm, correct, total, accuracy
+
+    actuals, predictions, cm, correct, total, accuracy = (
+        evaluate_model(demo)
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Overall Accuracy", f"{accuracy:.2f}%")
+    col2.metric("Correct Predictions", f"{correct}/{total}")
+    col3.metric("Incorrect Predictions", total - correct)
+
+    st.subheader("Confusion Matrix")
+
+    cm_df = pd.DataFrame(
+        cm,
+        index=[f"Actual {c}" for c in classes],
+        columns=[f"Predicted {c}" for c in classes]
+    )
+
+    st.dataframe(cm_df, use_container_width=True)
+
+    st.caption(
+        "Rows represent actual classes; columns represent predicted classes."
+    )
+
+    st.subheader("Class-wise Performance")
+
+    rows = []
+
+    for i, class_name in enumerate(classes):
+        tp = cm[i, i]
+        fp = cm[:, i].sum() - tp
+        fn = cm[i, :].sum() - tp
+
+        precision = tp / (tp + fp) if tp + fp else 0
+        recall = tp / (tp + fn) if tp + fn else 0
+
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if precision + recall else 0
+        )
+
+        rows.append({
+            "Class": class_name,
+            "Precision (%)": round(precision * 100, 2),
+            "Recall (%)": round(recall * 100, 2),
+            "F1-score (%)": round(f1 * 100, 2)
+        })
+
+    st.dataframe(
+        pd.DataFrame(rows),
+        use_container_width=True,
+        hide_index=True
+    )
+
 
     st.divider()
 
