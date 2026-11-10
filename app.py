@@ -783,14 +783,23 @@ try:
     # PAGE 5: MODEL EVALUATION
     # =================================================
 
+    
+    # =================================================
+    # PAGE 5: MODEL EVALUATION
+    # =================================================
+
     elif page == "📊 Model Evaluation":
 
         st.header("Model Evaluation Dashboard")
 
-        st.write(
-            "Evaluation of all prepared demonstration samples "
-            "using their clean signal features."
+        st.markdown(
+            "Performance analysis of GraphSAGE-v2 using "
+            "60 prepared demonstration samples and clean signals."
         )
+
+        # ---------------------------------------------
+        # 1. GENERATE PREDICTIONS
+        # ---------------------------------------------
 
         actuals = []
         predictions = []
@@ -798,7 +807,6 @@ try:
         for sample in samples:
 
             features = sample["x"]["clean"]
-
             probabilities = predict(features, demo)
 
             predicted_index = int(np.argmax(probabilities))
@@ -809,7 +817,10 @@ try:
         actuals = np.array(actuals)
         predictions = np.array(predictions)
 
-        # Confusion matrix
+        # ---------------------------------------------
+        # 2. CONFUSION MATRIX
+        # ---------------------------------------------
+
         cm = np.zeros(
             (len(classes), len(classes)),
             dtype=int
@@ -818,45 +829,125 @@ try:
         for actual, predicted in zip(actuals, predictions):
             cm[actual, predicted] += 1
 
-        # Overall performance
+        # ---------------------------------------------
+        # 3. OVERALL METRICS
+        # ---------------------------------------------
+
         correct = int(np.sum(actuals == predictions))
         total = len(actuals)
         incorrect = total - correct
 
         accuracy = correct / total * 100 if total else 0
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
 
-        col1.metric("Demo Accuracy", f"{accuracy:.2f}%")
-        col2.metric("Correct Predictions", f"{correct}/{total}")
-        col3.metric("Incorrect Predictions", incorrect)
+        col1.metric(
+            "Demo Accuracy",
+            f"{accuracy:.2f}%",
+            help="Accuracy on the 60 prepared demonstration samples."
+        )
+
+        col2.metric(
+            "Correct Predictions",
+            f"{correct}/{total}"
+        )
+
+        col3.metric(
+            "Incorrect Predictions",
+            incorrect
+        )
+
+        col4.metric(
+            "Classification Classes",
+            len(classes)
+        )
 
         st.caption(
-            "These metrics are calculated on the prepared demonstration samples."
+            "Evaluation is performed on the prepared demonstration "
+            "samples using their clean signal features."
         )
 
         st.divider()
 
-        # Confusion matrix
-        st.subheader("Confusion Matrix")
+        # ---------------------------------------------
+        # 4. CONFUSION MATRIX HEATMAP
+        # ---------------------------------------------
+
+        st.subheader("01 · Confusion Matrix")
 
         st.caption(
-            "Rows represent actual classes. "
-            "Columns represent predicted classes."
+            "Rows represent actual classes. Columns represent predicted classes. "
+            "The diagonal cells show correct classifications."
         )
 
-        cm_df = pd.DataFrame(
+        heatmap_fig = px.imshow(
             cm,
-            index=classes,
-            columns=classes
+            x=classes,
+            y=classes,
+            text_auto=True,
+            color_continuous_scale=[
+                [0.0, "#142238"],
+                [0.25, "#164e63"],
+                [0.60, "#0891b2"],
+                [1.0, "#22d3ee"]
+            ],
+            aspect="auto",
+            labels={
+                "x": "Predicted Class",
+                "y": "Actual Class",
+                "color": "Samples"
+            }
         )
 
-        st.table(cm_df)
+        heatmap_fig.update_traces(
+            textfont=dict(
+                size=17,
+                color="white"
+            ),
+            hovertemplate=(
+                "Actual: %{y}<br>"
+                "Predicted: %{x}<br>"
+                "Samples: %{z}<extra></extra>"
+            )
+        )
+
+        heatmap_fig.update_layout(
+            height=480,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(
+                color="#dbeafe",
+                family="Arial",
+                size=13
+            ),
+            margin=dict(l=50, r=30, t=30, b=50),
+            coloraxis_colorbar=dict(
+                title="Count"
+            )
+        )
+
+        heatmap_fig.update_xaxes(
+            side="bottom",
+            title="Predicted Class"
+        )
+
+        heatmap_fig.update_yaxes(
+            title="Actual Class",
+            autorange="reversed"
+        )
+
+        st.plotly_chart(
+            heatmap_fig,
+            use_container_width=True
+        )
 
         st.divider()
 
-        # Class-wise metrics
-        st.subheader("Class-wise Performance")
+        # ---------------------------------------------
+        # 5. CLASS-WISE PERFORMANCE
+        # ---------------------------------------------
+
+        st.subheader("02 · Class-wise Performance")
 
         class_metrics = []
 
@@ -894,13 +985,36 @@ try:
         st.dataframe(
             metrics_df,
             use_container_width=True,
-            hide_index=True
+            hide_index=True,
+            column_config={
+                "Precision (%)": st.column_config.ProgressColumn(
+                    "Precision",
+                    format="%.2f%%",
+                    min_value=0,
+                    max_value=100
+                ),
+                "Recall (%)": st.column_config.ProgressColumn(
+                    "Recall",
+                    format="%.2f%%",
+                    min_value=0,
+                    max_value=100
+                ),
+                "F1-score (%)": st.column_config.ProgressColumn(
+                    "F1-score",
+                    format="%.2f%%",
+                    min_value=0,
+                    max_value=100
+                )
+            }
         )
 
         st.divider()
 
-        # Grouped performance chart
-        st.subheader("Precision vs Recall vs F1-score")
+        # ---------------------------------------------
+        # 6. GROUPED PERFORMANCE CHART
+        # ---------------------------------------------
+
+        st.subheader("03 · Performance Comparison")
 
         chart_df = metrics_df.melt(
             id_vars="Class",
@@ -924,6 +1038,13 @@ try:
                 "Precision (%)": "#22d3ee",
                 "Recall (%)": "#3b82f6",
                 "F1-score (%)": "#a78bfa"
+            },
+            category_orders={
+                "Metric": [
+                    "Precision (%)",
+                    "Recall (%)",
+                    "F1-score (%)"
+                ]
             }
         )
 
@@ -934,11 +1055,15 @@ try:
         )
 
         performance_fig.update_yaxes(
-            title="Performance (%)",
-            range=[0, 115]
+            title="Score (%)",
+            range=[0, 115],
+            ticksuffix="%"
         )
 
-        performance_fig = style_chart(performance_fig, 450)
+        performance_fig = style_chart(
+            performance_fig,
+            height=450
+        )
 
         st.plotly_chart(
             performance_fig,
@@ -947,8 +1072,11 @@ try:
 
         st.divider()
 
-        # Misclassification analysis
-        st.subheader("Misclassification Analysis")
+        # ---------------------------------------------
+        # 7. MISCLASSIFICATION ANALYSIS
+        # ---------------------------------------------
+
+        st.subheader("04 · Misclassification Analysis")
 
         wrong_indices = np.where(actuals != predictions)[0]
 
@@ -961,20 +1089,21 @@ try:
                 wrong_data.append({
                     "Sample Number": int(index + 1),
                     "Actual Class": classes[int(actuals[index])],
-                    "Predicted Class": classes[int(predictions[index])]
+                    "Predicted Class": classes[int(predictions[index])],
+                    "Result": "Misclassified"
                 })
 
             wrong_df = pd.DataFrame(wrong_data)
+
+            st.warning(
+                f"{len(wrong_indices)} out of {total} demo samples "
+                "were misclassified."
+            )
 
             st.dataframe(
                 wrong_df,
                 use_container_width=True,
                 hide_index=True
-            )
-
-            st.warning(
-                f"{len(wrong_indices)} demonstration samples "
-                "were misclassified."
             )
 
         else:
@@ -983,15 +1112,50 @@ try:
                 "All demonstration samples were classified correctly."
             )
 
+        st.divider()
+
+        # ---------------------------------------------
+        # 8. EVALUATION SUMMARY
+        # ---------------------------------------------
+
+        st.subheader("05 · Evaluation Summary")
+
+        summary_col1, summary_col2 = st.columns(2)
+
+        with summary_col1:
+
+            st.markdown("""
+            <div class="section-card">
+                <h3>Model Performance</h3>
+                GraphSAGE-v2 classifies the prepared
+                demonstration samples across five
+                experimental pipeline categories.
+            </div>
+            """, unsafe_allow_html=True)
+
+        with summary_col2:
+
+            st.markdown("""
+            <div class="section-card">
+                <h3>Observed Errors</h3>
+                Misclassifications in this demonstration
+                occur in the LC class. The confusion matrix
+                shows where these predictions were assigned.
+            </div>
+            """, unsafe_allow_html=True)
+
         st.info(
             f"""
             **Evaluation scope:** {total} prepared demonstration samples.
 
-            **Demo accuracy:** {accuracy:.2f}%.
+            **Correct predictions:** {correct}
 
-            This result is separate from the full 590-window
-            held-out test evaluation. It should not be interpreted
-            as the model's full test-set accuracy.
+            **Incorrect predictions:** {incorrect}
+
+            **Demo accuracy:** {accuracy:.2f}%
+
+            This result is based on the selected 60-sample demonstration
+            subset. It is not the full 590-window held-out test result.
             """
         )
 
