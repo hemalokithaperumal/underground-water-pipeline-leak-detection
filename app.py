@@ -783,11 +783,6 @@ try:
     # PAGE 5: MODEL EVALUATION
     # =================================================
 
-    
-    # =================================================
-    # PAGE 5: MODEL EVALUATION
-    # =================================================
-
     elif page == "📊 Model Evaluation":
 
         st.header("Model Evaluation Dashboard")
