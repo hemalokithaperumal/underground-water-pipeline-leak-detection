@@ -1205,6 +1205,11 @@ try:
     # PAGE 6: ABOUT PROJECT
     # =================================================
 
+    
+    # =================================================
+    # PAGE 6: ABOUT PROJECT
+    # =================================================
+
     elif page == "👥 About Project":
 
         st.header("About the Project")
@@ -1234,17 +1239,14 @@ try:
         st.subheader("Project Team")
 
         st.markdown("""
-        HEMA LOKITHA P CSE(IOT)
-        GAYATRI ROSHINI CSE(IOT)
-        """)
-
-        st.dataframe(
-            team_df,
-            use_container_width=True,
-            hide_index=True
-        )
-
-        
+        <div class="section-card">
+            <h3>Hema Lokitha P</h3>
+            <p>Department of Computer Science and Engineering (IoT)</p>
+            <hr>
+            <h3>Gayathri Roshini M</h3>
+            <p>Department of Computer Science and Engineering (IoT)</p>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.divider()
 
@@ -1294,38 +1296,3 @@ try:
         real-time monitoring and edge deployment are outside
         the scope of this demonstration.
         """)
-
-    # =================================================
-    # 9. COMMON FOOTER
-    # =================================================
-
-    st.divider()
-
-    with st.expander("ℹ️ Project Scope and Limitations"):
-
-        st.markdown("""
-        - This demonstration uses prepared experimental dataset samples.
-        - The website does not currently process live sensor signals.
-        - It does not provide real-time pipeline monitoring.
-        - Physical sensor installation, live streaming and
-          edge deployment are outside the scope of this demonstration.
-        - Model performance on experimental samples may differ
-          from performance in real underground pipeline environments.
-        """)
-
-    st.caption(
-        "PIPELINE AI | Academic Final Year Project | GraphSAGE-v2"
-    )
-
-
-except Exception as e:
-
-    st.error(
-        f"An error occurred while loading or running the application: {e}"
-    )
-
-    st.info(
-        "Please verify that demo_model..json exists in your "
-        "GitHub repository and that the filename matches "
-        "the filename used in load_model()."
-    )
