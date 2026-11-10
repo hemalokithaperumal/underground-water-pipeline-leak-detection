@@ -28,7 +28,7 @@ def load_model():
 def softmax(x):
     x = x - np.max(x)
     exp_x = np.exp(x)
-    return np.exp(x) / np.sum(np.exp(x))
+    return exp_x / np.sum(exp_x)
 
 
 # ==========================================
@@ -300,7 +300,6 @@ try:
         predictions.append(predicted_index)
 
     actuals = np.array(actuals)
-
     predictions = np.array(predictions)
 
     # ======================================
@@ -346,7 +345,7 @@ try:
     )
 
     # ======================================
-    # CONFUSION MATRIX HEATMAP
+    # 8. CONFUSION MATRIX HEATMAP
     # ======================================
 
     st.subheader("Confusion Matrix Heatmap")
@@ -358,19 +357,37 @@ try:
 
     cm_df = pd.DataFrame(
         cm,
-        index=[f"Actual {c}" for c in classes],
-        columns=[f"Predicted {c}" for c in classes]
+        index=classes,
+        columns=classes
     )
 
+    # Highlight non-zero cells without Matplotlib
+    def highlight_cells(value):
+
+        if value > 0:
+
+            return (
+                "background-color: #2563eb;"
+                "color: white;"
+                "font-weight: bold;"
+                "text-align: center;"
+            )
+
+        return "text-align: center;"
+
+    styled_cm = cm_df.style.map(highlight_cells)
+
     st.dataframe(
-        cm_df.style.background_gradient(
-            cmap="Blues"
-        ).format("{:.0f}"),
+        styled_cm,
         use_container_width=True
     )
 
+    st.caption(
+        "Rows = Actual classes | Columns = Predicted classes"
+    )
+
     # ======================================
-    # CLASS-WISE PERFORMANCE
+    # 9. CLASS-WISE PERFORMANCE
     # ======================================
 
     st.subheader("Class-wise Performance")
@@ -421,19 +438,23 @@ try:
     )
 
     # ======================================
-    # CLASS-WISE PERFORMANCE CHART
+    # 10. PERFORMANCE COMPARISON CHART
     # ======================================
 
     st.subheader("Performance Comparison")
 
     chart_df = metrics_df.set_index("Class")[
-        ["Precision (%)", "Recall (%)", "F1-score (%)"]
+        [
+            "Precision (%)",
+            "Recall (%)",
+            "F1-score (%)"
+        ]
     ]
 
     st.bar_chart(chart_df)
 
     # ======================================
-    # MISCLASSIFICATION DETAILS
+    # 11. MISCLASSIFICATION DETAILS
     # ======================================
 
     st.subheader("Incorrect Predictions Analysis")
@@ -472,13 +493,14 @@ try:
 
     st.caption(
         "Note: This dashboard evaluates 60 prepared demonstration "
-        "samples. It is not the full 590-window held-out test result."
+        "samples. It is separate from the full 590-window held-out "
+        "test evaluation."
     )
 
     st.divider()
 
     # ======================================
-    # 8. PROJECT LIMITATIONS
+    # 12. PROJECT SCOPE AND LIMITATIONS
     # ======================================
 
     st.header("ℹ️ Project Scope and Limitations")
