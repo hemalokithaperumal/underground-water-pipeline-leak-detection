@@ -68,6 +68,10 @@ The broader research experiments compare multiple conventional, deep-learning, a
 
 These values are macro-F1 scores, not accuracy. Refer to the final research paper and its complete result tables for the full model comparison and experimental details.
 
+## Research notebook
+
+The research notebook is available at [`notebooks/research_experiments.ipynb`](notebooks/research_experiments.ipynb). It documents the experimental workflow. To rerun it, first obtain the dataset from the cited source and update any notebook data paths to match your environment. The raw dataset is not included in this repository.
+
 ## Run locally
 
 ### 1. Clone the repository
@@ -107,13 +111,24 @@ streamlit run app.py
 
 The exported model file `demo_model..json` must remain in the repository root because `app.py` loads it by that exact filename.
 
-## Repository files
+## Repository structure
+
+```text
+.
+├── app.py
+├── demo_model..json
+├── requirements.txt
+├── README.md
+└── notebooks/
+    └── research_experiments.ipynb
+```
 
 | File | Purpose |
 |---|---|
 | `app.py` | Streamlit user interface and NumPy GraphSAGE-v2 inference |
 | `demo_model..json` | Exported model parameters, scaler, class labels, and prepared demo samples |
 | `requirements.txt` | Python package dependencies |
+| `notebooks/research_experiments.ipynb` | Research notebook containing dataset processing, feature extraction, model experiments, evaluation, and demo-model preparation |
 
 ## Dataset reference
 
