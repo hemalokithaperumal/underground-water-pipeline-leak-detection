@@ -4,11 +4,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.express as px
-import plotly.graph_objects as go
 
-# ==========================================
+# =====================================================
 # 1. PAGE CONFIGURATION
-# ==========================================
+# =====================================================
 
 st.set_page_config(
     page_title="Pipeline AI | Leak Detection",
@@ -17,20 +16,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==========================================
-# 2. DASHBOARD THEME
-# ==========================================
+# =====================================================
+# 2. DASHBOARD CSS
+# =====================================================
 
 st.markdown("""
 <style>
-
 .stApp {
-    background: linear-gradient(
-        135deg,
-        #08111f 0%,
-        #101b30 55%,
-        #0b1526 100%
-    );
+    background: linear-gradient(135deg, #08111f, #101b30, #0b1526);
     color: #e5eefc;
 }
 
@@ -48,17 +41,12 @@ h1, h2, h3 {
     font-weight: 700 !important;
 }
 
-p, label, .stMarkdown {
+p, label {
     color: #c4d2e5;
 }
 
 .hero {
-    background: linear-gradient(
-        110deg,
-        #102b4b,
-        #123d5a,
-        #172554
-    );
+    background: linear-gradient(110deg, #102b4b, #123d5a, #172554);
     border: 1px solid #23617c;
     border-radius: 18px;
     padding: 28px;
@@ -73,7 +61,7 @@ p, label, .stMarkdown {
 }
 
 .hero-title {
-    color: #ffffff;
+    color: white;
     font-size: 32px;
     font-weight: 800;
     margin-top: 10px;
@@ -83,6 +71,17 @@ p, label, .stMarkdown {
     color: #c5d9ed;
     font-size: 15px;
     margin-top: 10px;
+}
+
+.status-pill {
+    display: inline-block;
+    background: #123d37;
+    color: #6ee7b7;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    border: 1px solid #176b59;
 }
 
 .section-card {
@@ -95,17 +94,6 @@ p, label, .stMarkdown {
 
 .section-card h3 {
     color: #67e8f9 !important;
-}
-
-.status-pill {
-    display: inline-block;
-    background: #123d37;
-    color: #6ee7b7;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: bold;
-    border: 1px solid #176b59;
 }
 
 .architecture-box {
@@ -152,56 +140,43 @@ div[data-testid="stMetricValue"] {
 hr {
     border-color: #263c58;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
 
-# ==========================================
-# 3. LOAD TRAINED MODEL
-# ==========================================
+# =====================================================
+# 3. LOAD EXPORTED MODEL
+# =====================================================
 
 @st.cache_data
 def load_model():
-
     with open("demo_model..json", "r") as file:
         return json.load(file)
 
 
-# ==========================================
-# 4. SOFTMAX FUNCTION
-# ==========================================
+# =====================================================
+# 4. SOFTMAX
+# =====================================================
 
 def softmax(x):
-
     x = x - np.max(x)
-
     exp_x = np.exp(x)
-
     return exp_x / np.sum(exp_x)
 
 
-# ==========================================
-# 5. GRAPHSAGE-V2 PREDICTION
-# ==========================================
+# =====================================================
+# 5. GRAPHSAGE-V2 NUMPY INFERENCE
+# =====================================================
 
 def predict(features, demo):
 
     model = demo["model"]
-
     scaler = demo["scaler"]
 
     x = np.asarray(features, dtype=np.float32)
 
-    mu = np.asarray(
-        scaler["mu"],
-        dtype=np.float32
-    )
-
-    sd = np.asarray(
-        scaler["sd"],
-        dtype=np.float32
-    )
+    mu = np.asarray(scaler["mu"], dtype=np.float32)
+    sd = np.asarray(scaler["sd"], dtype=np.float32)
 
     x = (x - mu) / np.maximum(sd, 1e-8)
 
@@ -215,17 +190,11 @@ def predict(features, demo):
     h = np.maximum(h, 0)
 
     # Learned sensor graph
-    L = np.asarray(
-        model["L"],
-        dtype=np.float32
-    ).copy()
+    L = np.asarray(model["L"], dtype=np.float32).copy()
 
     np.fill_diagonal(L, -np.inf)
 
-    A = np.exp(
-        L - np.max(L, axis=1, keepdims=True)
-    )
-
+    A = np.exp(L - np.max(L, axis=1, keepdims=True))
     A = A / A.sum(axis=1, keepdims=True)
 
     # GraphSAGE layer 1
@@ -263,26 +232,18 @@ def predict(features, demo):
     return softmax(logits)
 
 
-# ==========================================
-# 6. COMMON PLOTLY THEME
-# ==========================================
+# =====================================================
+# 6. CHART STYLING
+# =====================================================
 
-def style_chart(fig, height=380):
+def style_chart(fig, height=400):
 
     fig.update_layout(
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(
-            color="#dbeafe",
-            family="Arial"
-        ),
-        margin=dict(
-            l=20,
-            r=20,
-            t=45,
-            b=20
-        ),
+        font=dict(color="#dbeafe", family="Arial"),
+        margin=dict(l=20, r=20, t=55, b=20),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -305,44 +266,13 @@ def style_chart(fig, height=380):
     return fig
 
 
-# ==========================================
-# 7. COMMON HEADER
-# ==========================================
-
-st.markdown("""
-<div class="hero">
-
-    <div class="hero-label">
-        MULTI-SENSOR INTELLIGENCE SYSTEM
-    </div>
-
-    <div class="hero-title">
-        💧 PIPELINE AI
-    </div>
-
-    <div class="hero-description">
-        Deep Learning-Based Detection and Classification
-        of Underground Water Pipeline Leaks Using Multi-Sensor Signals
-    </div>
-
-    <br>
-
-    <span class="status-pill">
-        ● GRAPHSAGE-V2 MODEL
-    </span>
-
-</div>
-""", unsafe_allow_html=True)
-
-
-# ==========================================
-# 8. SIDEBAR NAVIGATION
-# ==========================================
+# =====================================================
+# 7. SIDEBAR NAVIGATION
+# =====================================================
 
 with st.sidebar:
 
     st.markdown("## 💧 PIPELINE AI")
-
     st.caption("Underground Leak Detection System")
 
     st.divider()
@@ -375,29 +305,55 @@ with st.sidebar:
     st.caption("Final Year Academic Project")
 
 
-# ==========================================
-# 9. MAIN APPLICATION
-# ==========================================
+# =====================================================
+# 8. LOAD DATA AND DISPLAY SELECTED PAGE
+# =====================================================
 
 try:
 
     demo = load_model()
 
     classes = demo["classes"]
-
     sensors = demo["sensors"]
-
     samples = demo["samples"]
-
     levels = demo["levels"]
 
-    st.success(
-        "Trained GraphSAGE-v2 model loaded successfully!"
-    )
+    st.success("Trained GraphSAGE-v2 model loaded successfully!")
 
-    # ======================================
+    # -------------------------------------------------
+    # HERO BANNER: OVERVIEW ONLY
+    # -------------------------------------------------
+
+    if page == "🏠 Overview":
+
+        st.markdown("""
+        <div class="hero">
+
+            <div class="hero-label">
+                MULTI-SENSOR INTELLIGENCE SYSTEM
+            </div>
+
+            <div class="hero-title">
+                💧 PIPELINE AI
+            </div>
+
+            <div class="hero-description">
+                Deep Learning-Based Detection and Classification
+                of Underground Water Pipeline Leaks Using Multi-Sensor Signals
+            </div>
+
+            <br>
+
+            <span class="status-pill">
+                ● GRAPHSAGE-V2 MODEL
+            </span>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+    # =================================================
     # PAGE 1: OVERVIEW
-    # ======================================
+    # =================================================
 
     if page == "🏠 Overview":
 
@@ -412,11 +368,8 @@ try:
         col1, col2, col3, col4 = st.columns(4)
 
         col1.metric("Sensor Channels", len(sensors))
-
         col2.metric("Classification Classes", len(classes))
-
         col3.metric("Prepared Demo Samples", len(samples))
-
         col4.metric("Model", "GraphSAGE-v2")
 
         st.divider()
@@ -486,10 +439,9 @@ try:
             "experimental samples. It is not a live pipeline monitoring system."
         )
 
-
-    # ======================================
+    # =================================================
     # PAGE 2: SYSTEM ARCHITECTURE
-    # ======================================
+    # =================================================
 
     elif page == "🏗️ System Architecture":
 
@@ -562,8 +514,8 @@ try:
             <div class="section-card">
                 <h3>Sensor Feature Encoder</h3>
                 Each sensor node has 16 extracted features.
-                The encoder converts the sensor features
-                into a learned representation.
+                The encoder converts sensor features into
+                a learned representation.
             </div>
             """, unsafe_allow_html=True)
 
@@ -592,10 +544,9 @@ try:
             "implementation of the trained GraphSAGE-v2 model."
         )
 
-
-    # ======================================
+    # =================================================
     # PAGE 3: DATASET & SENSORS
-    # ======================================
+    # =================================================
 
     elif page == "📡 Dataset & Sensors":
 
@@ -609,11 +560,8 @@ try:
         col1, col2, col3, col4 = st.columns(4)
 
         col1.metric("Recordings", "40")
-
         col2.metric("Windows", "2,360")
-
         col3.metric("Sensors", "6")
-
         col4.metric("Classes", "5")
 
         st.divider()
@@ -621,9 +569,7 @@ try:
         st.subheader("Sensor Channels")
 
         sensor_info = pd.DataFrame({
-            "Sensor Channel": [
-                "A1", "A2", "H1", "H2", "P1", "P2"
-            ],
+            "Sensor Channel": ["A1", "A2", "H1", "H2", "P1", "P2"],
             "Sensor Type": [
                 "Accelerometer",
                 "Accelerometer",
@@ -653,23 +599,25 @@ try:
         st.subheader("Classification Categories")
 
         st.caption(
-            "The following are dataset class codes. "
-            "Use the exact definitions from your dataset documentation."
+            "These are the experimental dataset class codes. "
+            "Their detailed meanings should follow the dataset documentation."
         )
 
-        for class_name in classes:
+        class_cols = st.columns(len(classes))
 
-            st.markdown(
-                f"""
-                <div class="section-card">
-                    <b style="color:#67e8f9;">{class_name}</b>
-                    <div style="color:#c4d2e5;">
-                        Experimental pipeline classification category.
+        for i, class_name in enumerate(classes):
+
+            with class_cols[i]:
+
+                st.markdown(
+                    f"""
+                    <div class="section-card" style="text-align:center;">
+                        <h3>{class_name}</h3>
+                        <p>Dataset class label</p>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                    """,
+                    unsafe_allow_html=True
+                )
 
         st.divider()
 
@@ -707,10 +655,9 @@ try:
             "for each of six sensor nodes (96 node features per sample)."
         )
 
-
-    # ======================================
+    # =================================================
     # PAGE 4: LEAK PREDICTION
-    # ======================================
+    # =================================================
 
     elif page == "🔍 Leak Prediction":
 
@@ -749,13 +696,9 @@ try:
 
         predicted_class = classes[predicted_index]
 
-        actual_class = classes[
-            int(selected_sample["label"])
-        ]
+        actual_class = classes[int(selected_sample["label"])]
 
-        confidence = float(
-            probabilities[predicted_index]
-        ) * 100
+        confidence = float(probabilities[predicted_index]) * 100
 
         st.divider()
 
@@ -763,20 +706,9 @@ try:
 
         col1, col2, col3 = st.columns(3)
 
-        col1.metric(
-            "Predicted Class",
-            predicted_class
-        )
-
-        col2.metric(
-            "Confidence",
-            f"{confidence:.2f}%"
-        )
-
-        col3.metric(
-            "Actual Class",
-            actual_class
-        )
+        col1.metric("Predicted Class", predicted_class)
+        col2.metric("Confidence", f"{confidence:.2f}%")
+        col3.metric("Actual Class", actual_class)
 
         if predicted_class == actual_class:
 
@@ -844,10 +776,7 @@ try:
             coloraxis_showscale=False
         )
 
-        probability_fig = style_chart(
-            probability_fig,
-            height=420
-        )
+        probability_fig = style_chart(probability_fig, 420)
 
         st.plotly_chart(
             probability_fig,
@@ -865,10 +794,9 @@ try:
             "It is not a guarantee that the prediction is correct."
         )
 
-
-    # ======================================
+    # =================================================
     # PAGE 5: MODEL EVALUATION
-    # ======================================
+    # =================================================
 
     elif page == "📊 Model Evaluation":
 
@@ -880,7 +808,6 @@ try:
         )
 
         actuals = []
-
         predictions = []
 
         for sample in samples:
@@ -889,20 +816,12 @@ try:
 
             probabilities = predict(features, demo)
 
-            predicted_index = int(
-                np.argmax(probabilities)
-            )
+            predicted_index = int(np.argmax(probabilities))
 
-            actuals.append(
-                int(sample["label"])
-            )
-
-            predictions.append(
-                predicted_index
-            )
+            actuals.append(int(sample["label"]))
+            predictions.append(predicted_index)
 
         actuals = np.array(actuals)
-
         predictions = np.array(predictions)
 
         # Confusion matrix
@@ -911,43 +830,21 @@ try:
             dtype=int
         )
 
-        for actual, predicted in zip(
-            actuals,
-            predictions
-        ):
-
+        for actual, predicted in zip(actuals, predictions):
             cm[actual, predicted] += 1
 
         # Overall performance
-        correct = int(
-            np.sum(actuals == predictions)
-        )
-
+        correct = int(np.sum(actuals == predictions))
         total = len(actuals)
-
         incorrect = total - correct
 
-        accuracy = (
-            correct / total * 100
-            if total else 0
-        )
+        accuracy = correct / total * 100 if total else 0
 
         col1, col2, col3 = st.columns(3)
 
-        col1.metric(
-            "Demo Accuracy",
-            f"{accuracy:.2f}%"
-        )
-
-        col2.metric(
-            "Correct Predictions",
-            f"{correct}/{total}"
-        )
-
-        col3.metric(
-            "Incorrect Predictions",
-            incorrect
-        )
+        col1.metric("Demo Accuracy", f"{accuracy:.2f}%")
+        col2.metric("Correct Predictions", f"{correct}/{total}")
+        col3.metric("Incorrect Predictions", incorrect)
 
         st.caption(
             "These metrics are calculated on the prepared demonstration samples."
@@ -983,7 +880,6 @@ try:
             tp = cm[i, i]
 
             predicted_count = cm[:, i].sum()
-
             actual_count = cm[i, :].sum()
 
             precision = (
@@ -997,27 +893,19 @@ try:
             )
 
             f1 = (
-                2 * precision * recall /
-                (precision + recall)
+                2 * precision * recall / (precision + recall)
                 if precision + recall > 0 else 0
             )
 
             class_metrics.append({
                 "Class": class_name,
-                "Precision (%)": round(
-                    precision * 100, 2
-                ),
-                "Recall (%)": round(
-                    recall * 100, 2
-                ),
-                "F1-score (%)": round(
-                    f1 * 100, 2
-                )
+                "Precision (%)": round(precision * 100, 2),
+                "Recall (%)": round(recall * 100, 2),
+                "F1-score (%)": round(f1 * 100, 2)
             })
 
         metrics_df = pd.DataFrame(class_metrics)
 
-        # Always show the class metrics table
         st.dataframe(
             metrics_df,
             use_container_width=True,
@@ -1026,7 +914,7 @@ try:
 
         st.divider()
 
-        # Grouped comparison chart
+        # Grouped performance chart
         st.subheader("Precision vs Recall vs F1-score")
 
         chart_df = metrics_df.melt(
@@ -1051,13 +939,6 @@ try:
                 "Precision (%)": "#22d3ee",
                 "Recall (%)": "#3b82f6",
                 "F1-score (%)": "#a78bfa"
-            },
-            category_orders={
-                "Metric": [
-                    "Precision (%)",
-                    "Recall (%)",
-                    "F1-score (%)"
-                ]
             }
         )
 
@@ -1072,10 +953,7 @@ try:
             range=[0, 115]
         )
 
-        performance_fig = style_chart(
-            performance_fig,
-            height=450
-        )
+        performance_fig = style_chart(performance_fig, 450)
 
         st.plotly_chart(
             performance_fig,
@@ -1087,9 +965,7 @@ try:
         # Misclassification analysis
         st.subheader("Misclassification Analysis")
 
-        wrong_indices = np.where(
-            actuals != predictions
-        )[0]
+        wrong_indices = np.where(actuals != predictions)[0]
 
         if len(wrong_indices) > 0:
 
@@ -1099,12 +975,8 @@ try:
 
                 wrong_data.append({
                     "Sample Number": int(index + 1),
-                    "Actual Class": classes[
-                        int(actuals[index])
-                    ],
-                    "Predicted Class": classes[
-                        int(predictions[index])
-                    ]
+                    "Actual Class": classes[int(actuals[index])],
+                    "Predicted Class": classes[int(predictions[index])]
                 })
 
             wrong_df = pd.DataFrame(wrong_data)
@@ -1128,20 +1000,19 @@ try:
 
         st.info(
             f"""
-            Evaluation scope: {total} prepared demonstration samples.
+            **Evaluation scope:** {total} prepared demonstration samples.
 
-            Demo accuracy: {accuracy:.2f}%.
-            
+            **Demo accuracy:** {accuracy:.2f}%.
+
             This result is separate from the full 590-window
             held-out test evaluation. It should not be interpreted
             as the model's full test-set accuracy.
             """
         )
 
-
-    # ======================================
+    # =================================================
     # PAGE 6: ABOUT PROJECT
-    # ======================================
+    # =================================================
 
     elif page == "👥 About Project":
 
@@ -1163,7 +1034,7 @@ try:
 
         Department of Computer Science and Engineering
         (Internet of Things)
-        
+
         Chennai, Tamil Nadu
         """)
 
@@ -1245,10 +1116,9 @@ try:
         the scope of this demonstration.
         """)
 
-
-# ==========================================
-# 10. COMMON FOOTER
-# ==========================================
+    # =================================================
+    # 9. COMMON FOOTER
+    # =================================================
 
     st.divider()
 
@@ -1277,6 +1147,6 @@ except Exception as e:
 
     st.info(
         "Please verify that demo_model..json exists in your "
-        "GitHub repository and that its filename matches "
+        "GitHub repository and that the filename matches "
         "the filename used in load_model()."
     )
