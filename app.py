@@ -1159,6 +1159,53 @@ try:
             """
         )
 
+        # ---------------------------------------------
+        # 9. FULL HELD-OUT FLOW-CONDITION EVALUATION
+        # ---------------------------------------------
+
+        st.divider()
+        st.subheader("06 · Full Held-Out Flow-Condition Evaluation")
+
+        heldout_metrics = demo.get("heldout_metrics", {})
+        if heldout_metrics:
+            heldout_condition = demo.get("hold_condition", "Not recorded")
+            heldout_count = demo.get("n_heldout", "Not recorded")
+
+            st.write(
+                f"**Held-out operating condition:** {heldout_condition}  |  "
+                f"**Held-out windows:** {heldout_count}"
+            )
+
+            heldout_rows = []
+            for level in levels:
+                metrics = heldout_metrics.get(str(level))
+                if metrics is None:
+                    continue
+
+                level_label = "Clean" if str(level) == "clean" else f"{level} dB"
+                heldout_rows.append({
+                    "Test signal": level_label,
+                    "Accuracy (%)": round(float(metrics["acc"]) * 100, 2),
+                    "Macro F1 (%)": round(float(metrics["f1"]) * 100, 2)
+                })
+
+            if heldout_rows:
+                heldout_df = pd.DataFrame(heldout_rows)
+                st.dataframe(
+                    heldout_df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+            st.caption(
+                "These metrics are stored for all held-out windows from the "
+                "0.47 LPS condition. Noise levels are controlled noise added "
+                "to the held-out signals. This evaluation is separate from "
+                "the 60 selected demonstration samples shown above."
+            )
+        else:
+            st.info("Full held-out metrics are not available in this model export.")
+
     # =================================================
     # PAGE 6: ABOUT PROJECT
     # =================================================
