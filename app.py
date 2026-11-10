@@ -1250,13 +1250,7 @@ try:
             hide_index=True
         )
 
-        st.subheader("Project Guide")
-
-        st.markdown("""
-        **Mr. K. Premnath**
-
-        Department of Computer Science and Engineering
-        """)
+        
 
         st.divider()
 
