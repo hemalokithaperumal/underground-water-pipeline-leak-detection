@@ -1,3 +1,4 @@
+
 import json
 import numpy as np
 import pandas as pd
@@ -44,7 +45,6 @@ p, label {
     color: #c4d2e5;
 }
 
-/* Compact Overview heading */
 .compact-header {
     background: linear-gradient(120deg, #102b4b, #123d5a);
     border: 1px solid #23617c;
@@ -158,7 +158,7 @@ def load_model():
 def softmax(x):
     x = x - np.max(x)
     exp_x = np.exp(x)
-    return exp_x / np.sum(exp_x)
+    return np.exp(x) / np.sum(np.exp(x))
 
 
 # =====================================================
@@ -317,9 +317,9 @@ try:
 
     st.success("Trained GraphSAGE-v2 model loaded successfully!")
 
-    # -------------------------------------------------
-    # COMPACT HEADER: OVERVIEW ONLY
-    # -------------------------------------------------
+    # =================================================
+    # PAGE 1: OVERVIEW
+    # =================================================
 
     if page == "🏠 Overview":
 
@@ -335,12 +335,6 @@ try:
             </div>
         </div>
         """, unsafe_allow_html=True)
-
-    # =================================================
-    # PAGE 1: OVERVIEW
-    # =================================================
-
-    if page == "🏠 Overview":
 
         st.header("System Overview")
 
@@ -792,10 +786,7 @@ try:
             "60 prepared demonstration samples and clean signals."
         )
 
-        # ---------------------------------------------
-        # 1. GENERATE PREDICTIONS
-        # ---------------------------------------------
-
+        # Generate predictions
         actuals = []
         predictions = []
 
@@ -812,10 +803,7 @@ try:
         actuals = np.array(actuals)
         predictions = np.array(predictions)
 
-        # ---------------------------------------------
-        # 2. CONFUSION MATRIX
-        # ---------------------------------------------
-
+        # Confusion matrix
         cm = np.zeros(
             (len(classes), len(classes)),
             dtype=int
@@ -824,10 +812,7 @@ try:
         for actual, predicted in zip(actuals, predictions):
             cm[actual, predicted] += 1
 
-        # ---------------------------------------------
-        # 3. OVERALL METRICS
-        # ---------------------------------------------
-
+        # Overall metrics
         correct = int(np.sum(actuals == predictions))
         total = len(actuals)
         incorrect = total - correct
@@ -864,10 +849,7 @@ try:
 
         st.divider()
 
-        # ---------------------------------------------
-        # 4. CONFUSION MATRIX HEATMAP
-        # ---------------------------------------------
-
+        # Confusion matrix
         st.subheader("01 · Confusion Matrix")
 
         st.caption(
@@ -938,10 +920,7 @@ try:
 
         st.divider()
 
-        # ---------------------------------------------
-        # 5. CLASS-WISE PERFORMANCE
-        # ---------------------------------------------
-
+        # Class-wise performance
         st.subheader("02 · Class-wise Performance")
 
         class_metrics = []
@@ -1005,10 +984,7 @@ try:
 
         st.divider()
 
-        # ---------------------------------------------
-        # 6. GROUPED PERFORMANCE CHART
-        # ---------------------------------------------
-
+        # Performance comparison
         st.subheader("03 · Performance Comparison")
 
         chart_df = metrics_df.melt(
@@ -1067,10 +1043,7 @@ try:
 
         st.divider()
 
-        # ---------------------------------------------
-        # 7. MISCLASSIFICATION ANALYSIS
-        # ---------------------------------------------
-
+        # Misclassification analysis
         st.subheader("04 · Misclassification Analysis")
 
         wrong_indices = np.where(actuals != predictions)[0]
@@ -1109,10 +1082,7 @@ try:
 
         st.divider()
 
-        # ---------------------------------------------
-        # 8. EVALUATION SUMMARY
-        # ---------------------------------------------
-
+        # Evaluation summary
         st.subheader("05 · Evaluation Summary")
 
         summary_col1, summary_col2 = st.columns(2)
@@ -1154,17 +1124,24 @@ try:
             """
         )
 
-        # ---------------------------------------------
-        # 9. FULL HELD-OUT FLOW-CONDITION EVALUATION
-        # ---------------------------------------------
-
+        # Full held-out flow-condition evaluation
         st.divider()
+
         st.subheader("06 · Full Held-Out Flow-Condition Evaluation")
 
         heldout_metrics = demo.get("heldout_metrics", {})
+
         if heldout_metrics:
-            heldout_condition = demo.get("hold_condition", "Not recorded")
-            heldout_count = demo.get("n_heldout", "Not recorded")
+
+            heldout_condition = demo.get(
+                "hold_condition",
+                "Not recorded"
+            )
+
+            heldout_count = demo.get(
+                "n_heldout",
+                "Not recorded"
+            )
 
             st.write(
                 f"**Held-out operating condition:** {heldout_condition}  |  "
@@ -1172,20 +1149,34 @@ try:
             )
 
             heldout_rows = []
+
             for level in levels:
+
                 metrics = heldout_metrics.get(str(level))
+
                 if metrics is None:
                     continue
 
-                level_label = "Clean" if str(level) == "clean" else f"{level} dB"
+                level_label = (
+                    "Clean"
+                    if str(level) == "clean"
+                    else f"{level} dB"
+                )
+
                 heldout_rows.append({
                     "Test signal": level_label,
-                    "Accuracy (%)": round(float(metrics["acc"]) * 100, 2),
-                    "Macro F1 (%)": round(float(metrics["f1"]) * 100, 2)
+                    "Accuracy (%)": round(
+                        float(metrics["acc"]) * 100, 2
+                    ),
+                    "Macro F1 (%)": round(
+                        float(metrics["f1"]) * 100, 2
+                    )
                 })
 
             if heldout_rows:
+
                 heldout_df = pd.DataFrame(heldout_rows)
+
                 st.dataframe(
                     heldout_df,
                     use_container_width=True,
@@ -1196,16 +1187,15 @@ try:
                 "These metrics are stored for all held-out windows from the "
                 "0.47 LPS condition. Noise levels are controlled noise added "
                 "to the held-out signals. This evaluation is separate from "
-                "the 60 selected demonstration samples shown above."
+                "the 60 selected demonstration samples."
             )
+
         else:
-            st.info("Full held-out metrics are not available in this model export.")
 
-    # =================================================
-    # PAGE 6: ABOUT PROJECT
-    # =================================================
+            st.info(
+                "Full held-out metrics are not available in this model export."
+            )
 
-    
     # =================================================
     # PAGE 6: ABOUT PROJECT
     # =================================================
@@ -1296,3 +1286,38 @@ try:
         real-time monitoring and edge deployment are outside
         the scope of this demonstration.
         """)
+
+    # =================================================
+    # COMMON FOOTER
+    # =================================================
+
+    st.divider()
+
+    with st.expander("ℹ️ Project Scope and Limitations"):
+
+        st.markdown("""
+        - This demonstration uses prepared experimental dataset samples.
+        - The website does not currently process live sensor signals.
+        - It does not provide real-time pipeline monitoring.
+        - Physical sensor installation, live streaming and
+          edge deployment are outside the scope of this demonstration.
+        - Model performance on experimental samples may differ
+          from performance in real underground pipeline environments.
+        """)
+
+    st.caption(
+        "PIPELINE AI | Academic Final Year Project | GraphSAGE-v2"
+    )
+
+
+except Exception as e:
+
+    st.error(
+        f"An error occurred while loading or running the application: {e}"
+    )
+
+    st.info(
+        "Please verify that demo_model..json exists in your "
+        "GitHub repository and that the filename matches "
+        "the filename used in load_model()."
+    )
