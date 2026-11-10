@@ -5,15 +5,15 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="Pipeline Leak Detection",
+    page_title="Underground Water Pipeline Leak Detection",
     page_icon="💧",
     layout="wide"
 )
 
 
-# -----------------------------------
-# Load trained model
-# -----------------------------------
+# ==========================================
+# 1. LOAD TRAINED MODEL
+# ==========================================
 
 @st.cache_data
 def load_model():
@@ -21,21 +21,22 @@ def load_model():
         return json.load(file)
 
 
-# -----------------------------------
-# Softmax function
-# -----------------------------------
+# ==========================================
+# 2. SOFTMAX FUNCTION
+# ==========================================
 
 def softmax(x):
     x = x - np.max(x)
     exp_x = np.exp(x)
-    return exp_x / np.sum(exp_x)
+    return np.exp(x) / np.sum(np.exp(x))
 
 
-# -----------------------------------
-# GraphSAGE-v2 prediction
-# -----------------------------------
+# ==========================================
+# 3. GRAPHSAGE-V2 PREDICTION
+# ==========================================
 
 def predict(features, demo):
+
     model = demo["model"]
     scaler = demo["scaler"]
 
@@ -100,20 +101,34 @@ def predict(features, demo):
     return probabilities
 
 
-# -----------------------------------
-# Main website
-# -----------------------------------
+# ==========================================
+# 4. WEBSITE HEADER
+# ==========================================
 
 st.title("💧 Underground Water Pipeline Leak Detection")
 
 st.write(
-    "GraphSAGE-v2 based detection and classification "
-    "using multi-sensor signals."
+    "A GraphSAGE-v2 based detection and classification "
+    "system using multi-sensor signals."
+)
+
+st.markdown(
+    """
+    This project demonstrates the classification of
+    underground water pipeline conditions using
+    experimental multi-sensor data.
+    """
 )
 
 st.divider()
 
+
+# ==========================================
+# 5. MAIN APPLICATION
+# ==========================================
+
 try:
+
     demo = load_model()
 
     classes = demo["classes"]
@@ -121,65 +136,225 @@ try:
     samples = demo["samples"]
     levels = demo["levels"]
 
-    st.success("Trained GraphSAGE-v2 model loaded successfully!")
-
-    st.subheader("Model Information")
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("Classification Categories", len(classes))
-    col2.metric("Sensors", len(sensors))
-    col3.metric("Prepared Test Samples", len(samples))
-
-    st.write("**Sensor channels:**", ", ".join(sensors))
-    st.write("**Classes:**", ", ".join(classes))
-    
-    # -----------------------------------
-    # Automated Model Evaluation
-    # -----------------------------------
-
-    st.divider()
-    st.header("📊 Model Evaluation Dashboard")
-
-    @st.cache_data
-    def evaluate_model(demo):
-        actuals = []
-        predictions = []
-
-        for sample in demo["samples"]:
-            features = sample["x"]["clean"]
-
-            probabilities = predict(features, demo)
-            predicted_index = int(np.argmax(probabilities))
-
-            actuals.append(int(sample["label"]))
-            predictions.append(predicted_index)
-
-        actuals = np.array(actuals)
-        predictions = np.array(predictions)
-
-        cm = np.zeros((len(classes), len(classes)), dtype=int)
-
-        for actual, predicted in zip(actuals, predictions):
-            cm[actual, predicted] += 1
-
-        correct = int(np.sum(actuals == predictions))
-        total = len(actuals)
-        accuracy = correct / total * 100
-
-        return actuals, predictions, cm, correct, total, accuracy
-
-    actuals, predictions, cm, correct, total, accuracy = (
-        evaluate_model(demo)
+    st.success(
+        "Trained GraphSAGE-v2 model loaded successfully!"
     )
 
+    # ======================================
+    # MODEL INFORMATION
+    # ======================================
+
+    st.header("🧠 Model Information")
+
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("Overall Accuracy", f"{accuracy:.2f}%")
-    col2.metric("Correct Predictions", f"{correct}/{total}")
-    col3.metric("Incorrect Predictions", total - correct)
+    col1.metric(
+        "Classification Categories",
+        len(classes)
+    )
 
-    st.subheader("Confusion Matrix")
+    col2.metric(
+        "Sensor Channels",
+        len(sensors)
+    )
+
+    col3.metric(
+        "Prepared Test Samples",
+        len(samples)
+    )
+
+    st.write("**Sensor channels:**", ", ".join(sensors))
+    st.write("**Classification classes:**", ", ".join(classes))
+
+    st.divider()
+
+    # ======================================
+    # 6. SAMPLE PREDICTION
+    # ======================================
+
+    st.header("🔍 Leak Classification Demo")
+
+    st.write(
+        "Select a prepared experimental sample and noise level "
+        "to view the model prediction."
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        sample_number = st.selectbox(
+            "Select Test Sample",
+            options=list(range(1, len(samples) + 1)),
+            index=0
+        )
+
+    with col2:
+
+        noise_level = st.selectbox(
+            "Select Signal Noise Level",
+            options=levels,
+            index=0
+        )
+
+    selected_sample = samples[sample_number - 1]
+
+    features = selected_sample["x"][noise_level]
+
+    probabilities = predict(features, demo)
+
+    predicted_index = int(np.argmax(probabilities))
+
+    predicted_class = classes[predicted_index]
+
+    actual_class = classes[int(selected_sample["label"])]
+
+    confidence = float(probabilities[predicted_index]) * 100
+
+    # Prediction results
+    st.subheader("Prediction Result")
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "Predicted Class",
+        predicted_class
+    )
+
+    col2.metric(
+        "Confidence",
+        f"{confidence:.2f}%"
+    )
+
+    col3.metric(
+        "Actual Class",
+        actual_class
+    )
+
+    if predicted_class == actual_class:
+
+        st.success(
+            "Correct prediction! The predicted class matches "
+            "the actual class."
+        )
+
+    else:
+
+        st.error(
+            "Incorrect prediction. The predicted class differs "
+            "from the actual class."
+        )
+
+    st.write(
+        "**Network configuration:**",
+        selected_sample["net"]
+    )
+
+    # ======================================
+    # CLASS PROBABILITY CHART
+    # ======================================
+
+    st.subheader("Class Probability Distribution")
+
+    probability_df = pd.DataFrame({
+        "Class": classes,
+        "Probability (%)": probabilities * 100
+    })
+
+    st.bar_chart(
+        probability_df.set_index("Class")
+    )
+
+    st.dataframe(
+        probability_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.divider()
+
+    # ======================================
+    # 7. AUTOMATED MODEL EVALUATION
+    # ======================================
+
+    st.header("📊 Model Evaluation Dashboard")
+
+    st.write(
+        "The following evaluation uses all prepared demonstration "
+        "samples with clean signals."
+    )
+
+    actuals = []
+    predictions = []
+
+    for sample in samples:
+
+        features = sample["x"]["clean"]
+
+        probabilities = predict(features, demo)
+
+        predicted_index = int(np.argmax(probabilities))
+
+        actuals.append(int(sample["label"]))
+
+        predictions.append(predicted_index)
+
+    actuals = np.array(actuals)
+
+    predictions = np.array(predictions)
+
+    # ======================================
+    # CONFUSION MATRIX CALCULATION
+    # ======================================
+
+    cm = np.zeros(
+        (len(classes), len(classes)),
+        dtype=int
+    )
+
+    for actual, predicted in zip(actuals, predictions):
+
+        cm[actual, predicted] += 1
+
+    # ======================================
+    # OVERALL PERFORMANCE
+    # ======================================
+
+    correct = int(np.sum(actuals == predictions))
+
+    total = len(actuals)
+
+    incorrect = total - correct
+
+    accuracy = (correct / total) * 100 if total else 0
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "Overall Accuracy",
+        f"{accuracy:.2f}%"
+    )
+
+    col2.metric(
+        "Correct Predictions",
+        f"{correct}/{total}"
+    )
+
+    col3.metric(
+        "Incorrect Predictions",
+        incorrect
+    )
+
+    # ======================================
+    # CONFUSION MATRIX HEATMAP
+    # ======================================
+
+    st.subheader("Confusion Matrix Heatmap")
+
+    st.write(
+        "Rows represent actual classes; columns represent "
+        "predicted classes."
+    )
 
     cm_df = pd.DataFrame(
         cm,
@@ -187,106 +362,153 @@ try:
         columns=[f"Predicted {c}" for c in classes]
     )
 
-    st.dataframe(cm_df, use_container_width=True)
-
-    st.caption(
-        "Rows represent actual classes; columns represent predicted classes."
+    st.dataframe(
+        cm_df.style.background_gradient(
+            cmap="Blues"
+        ).format("{:.0f}"),
+        use_container_width=True
     )
+
+    # ======================================
+    # CLASS-WISE PERFORMANCE
+    # ======================================
 
     st.subheader("Class-wise Performance")
 
-    rows = []
+    class_metrics = []
 
     for i, class_name in enumerate(classes):
-        tp = cm[i, i]
-        fp = cm[:, i].sum() - tp
-        fn = cm[i, :].sum() - tp
 
-        precision = tp / (tp + fp) if tp + fp else 0
-        recall = tp / (tp + fn) if tp + fn else 0
+        tp = cm[i, i]
+
+        predicted_count = cm[:, i].sum()
+
+        actual_count = cm[i, :].sum()
+
+        precision = (
+            tp / predicted_count
+            if predicted_count > 0 else 0
+        )
+
+        recall = (
+            tp / actual_count
+            if actual_count > 0 else 0
+        )
 
         f1 = (
             2 * precision * recall / (precision + recall)
-            if precision + recall else 0
+            if precision + recall > 0 else 0
         )
 
-        rows.append({
+        class_metrics.append({
+
             "Class": class_name,
+
             "Precision (%)": round(precision * 100, 2),
+
             "Recall (%)": round(recall * 100, 2),
+
             "F1-score (%)": round(f1 * 100, 2)
+
         })
 
+    metrics_df = pd.DataFrame(class_metrics)
+
     st.dataframe(
-        pd.DataFrame(rows),
+        metrics_df,
         use_container_width=True,
         hide_index=True
     )
 
+    # ======================================
+    # CLASS-WISE PERFORMANCE CHART
+    # ======================================
 
-    st.divider()
+    st.subheader("Performance Comparison")
 
-    st.subheader("Leak Classification Demo")
+    chart_df = metrics_df.set_index("Class")[
+        ["Precision (%)", "Recall (%)", "F1-score (%)"]
+    ]
 
-    sample_index = st.selectbox(
-        "Select a prepared test sample",
-        range(len(samples)),
-        format_func=lambda i: f"Sample {i + 1}"
-    )
+    st.bar_chart(chart_df)
 
-    sample = samples[sample_index]
+    # ======================================
+    # MISCLASSIFICATION DETAILS
+    # ======================================
 
-    noise_level = st.selectbox(
-        "Select signal noise level",
-        levels,
-        format_func=lambda level:
-            "Clean signal" if level == "clean"
-            else f"{level} dB noise"
-    )
+    st.subheader("Incorrect Predictions Analysis")
 
-    features = sample["x"][noise_level]
+    wrong_indices = np.where(actuals != predictions)[0]
 
-    probabilities = predict(features, demo)
+    if len(wrong_indices) > 0:
 
-    predicted_index = int(np.argmax(probabilities))
-    predicted_class = classes[predicted_index]
+        wrong_data = []
 
-    actual_class = classes[int(sample["label"])]
+        for index in wrong_indices:
 
-    confidence = float(probabilities[predicted_index]) * 100
+            wrong_data.append({
 
-    st.divider()
+                "Sample Number": int(index + 1),
 
-    st.subheader("Prediction Result")
+                "Actual Class": classes[int(actuals[index])],
 
-    col1, col2 = st.columns(2)
+                "Predicted Class": classes[int(predictions[index])]
 
-    col1.metric("Predicted Class", predicted_class)
-    col2.metric("Prediction Confidence", f"{confidence:.2f}%")
+            })
 
-    if predicted_class == actual_class:
-        st.success("Prediction matches the actual class.")
-    else:
-        st.warning(
-            f"Prediction differs from actual class: {actual_class}"
+        wrong_df = pd.DataFrame(wrong_data)
+
+        st.dataframe(
+            wrong_df,
+            use_container_width=True,
+            hide_index=True
         )
 
-    st.subheader("Class Probability")
+    else:
 
-    chart_data = pd.DataFrame(
-        {"Probability (%)": probabilities * 100},
-        index=classes
-    )
-
-    st.bar_chart(chart_data)
-
-    st.write("**Network configuration:**", sample["net"])
+        st.success(
+            "All demonstration samples were classified correctly."
+        )
 
     st.caption(
-        "This demonstration uses prepared test samples from the "
-        "experimental dataset. It does not process live sensor data."
+        "Note: This dashboard evaluates 60 prepared demonstration "
+        "samples. It is not the full 590-window held-out test result."
     )
 
-except Exception as error:
-    st.error("Unable to load or run the prediction model.")
-    st.exception(error)
+    st.divider()
+
+    # ======================================
+    # 8. PROJECT LIMITATIONS
+    # ======================================
+
+    st.header("ℹ️ Project Scope and Limitations")
+
+    st.info(
+        """
+        This demonstration uses prepared test samples from the
+        experimental dataset.
+
+        It does not currently process live sensor data or provide
+        real-time pipeline monitoring.
+
+        Physical sensor installation, live streaming and
+        edge deployment are outside the scope of this demonstration.
+        """
+    )
+
+    st.caption(
+        "Developed as an academic final-year project."
+    )
+
+
+except Exception as e:
+
+    st.error(
+        f"An error occurred while loading or running the application: {e}"
+    )
+
+    st.info(
+        "Please verify that the model JSON file is present in "
+        "the GitHub repository and that its filename matches "
+        "the filename used in load_model()."
+    )
