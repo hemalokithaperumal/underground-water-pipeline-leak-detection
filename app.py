@@ -17,7 +17,7 @@ st.set_page_config(
 
 @st.cache_data
 def load_model():
-    with open("demo_model.json", "r") as file:
+    with open("demo_model..json", "r") as file:
         return json.load(file)
 
 
